@@ -5,52 +5,58 @@ import net.contal.demo.services.BankService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 
 @RestController
 @RequestMapping("/banks")
 public class BankController {
-    final Logger logger = LoggerFactory.getLogger(BankController.class);
-    final BankService dataService;
+    private final Logger logger = LoggerFactory.getLogger(BankController.class);
+    private final BankService dataService;
 
+    @Autowired
     public BankController(BankService dataService) {
         this.dataService = dataService;
     }
 
-
-    /**
-     *  TODO call properiate method in dataService to create an bank account , return generated bank account number
-     * @param account {firstName:"" , lastName:"" }
-     * @return bank account number
-     */
-    @RequestMapping(method = RequestMethod.POST,value = "/create")
-    public long createBankAccount(@RequestBody CustomerAccount account){
-        logger.info("{}" ,account.toString());
-//TODO implement the rest
-        return -1;
+    @PostMapping("/create")
+    public ResponseEntity<Long> createBankAccount(@RequestBody CustomerAccount account) {
+        try {
+            logger.info("Creating bank account for: {}", account);
+            String accountNumber = dataService.createAnAccount(account);
+            return ResponseEntity.ok(Long.parseLong(accountNumber));
+        } catch (Exception e) {
+            logger.error("Error creating bank account: {}", e.toString());
+            return ResponseEntity.badRequest().body(-1L);
+        }
     }
 
-    /**
-     *TODO call related Method from Service class to do the process
-     * @param accountNumber BankAccount number
-     * @param amount Amount as Transaction
-     */
-    @RequestMapping(method = RequestMethod.POST,value = "/transaction")
-    public void addTransaction(@RequestParam("accountNumber") String accountNumber, @RequestParam("amount") Double amount){
-        logger.info("Bank Account number is :{} , Transaction Amount {}",accountNumber,amount);
-        //TODO implement the rest
+    @PostMapping("/transaction")
+    public ResponseEntity<String> addTransaction(@RequestParam("accountNumber") int accountNumber, @RequestParam("amount") Double amount) {
+        try {
+            logger.info("Bank Account number is :{}, Transaction Amount {}", accountNumber, amount);
+            boolean result = dataService.addTransactions(accountNumber, amount);
+            if (result) {
+                return ResponseEntity.ok("Transaction successfully added");
+            } else {
+                return ResponseEntity.badRequest().body("Failed to add transaction");
+            }
+        } catch (Exception e) {
+            logger.error("Error adding transaction: {}", e.toString());
+            return ResponseEntity.badRequest().body("Failed to add transaction due to an error");
+        }
     }
 
-
-    /**
-     * TODO call related Method from Service class to do the process
-     * @param accountNumber customer  bank account  number
-     * @return balance
-     */
-    @RequestMapping(method = RequestMethod.POST,value = "/balance")
-    public Double getBalance(@RequestParam("accountNumber") String accountNumber){
-        logger.info("Bank Account number is :{}",accountNumber);
-            //TODO implement the rest
-        return 0.0d;
+    @PostMapping("/balance")
+    public ResponseEntity<Double> getBalance(@RequestParam("accountNumber") int accountNumber) {
+        try {
+            logger.info("Retrieving balance for account number: {}", accountNumber);
+            double balance = dataService.getBalance(accountNumber);
+            return ResponseEntity.ok(balance);
+        } catch (Exception e) {
+            logger.error("Error retrieving balance: {}", e.toString());
+            return ResponseEntity.badRequest().body(0.0);
+        }
     }
 
 }
